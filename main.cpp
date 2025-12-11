@@ -207,6 +207,7 @@ int main(int argc, char* argv[]) {
    fclose(fidC);
 
    delete[] cooRow;
+   delete[] csrRow;
    delete[] cooCol;
    delete[] cooMat;
    delete[] rhs;

@@ -492,41 +492,41 @@ int solveJacobi2D_A(const int nnz
                    ,double* const aux
                    ,ofstream& LOG_FILE) {
 
-   res = 2*TOL;
+   res = 2*TOL; // initialize residual
 
-   iters = 0;
-   while (res>TOL) {
-      int inz = 0;
-      while (inz <= nnz-1 ) {
+   iters = 0; // initialize iteration counter
+   while (res>TOL) { // main iteration loop where residual is checked
+      int inz = 0; // initialize index for COO format
+      while (inz <= nnz-1 ) { // loop over rows
          double sum = 0.0;
-         double a11;
-         const int l = cooRow[inz];
-         int row=cooRow[inz];
-         while ( row == l and inz <= nnz-1) {
-            const int col=cooCol[inz];
-            const double coeff=cooMat[inz];
-            if (row == col) { 
-               a11 = coeff;
+         double a11; // diagonal entry
+         const int l = cooRow[inz]; // current row
+         int row=cooRow[inz]; // row being processed
+         while ( row == l and inz <= nnz-1) { // loop over entries in the row
+            const int col=cooCol[inz]; // column index
+            const double coeff=cooMat[inz]; // matrix entry
+            if (row == col) { // diagonal entry
+               a11 = coeff; // store diagonal entry
             } else {
-               sum+= coeff*sol[col];
+               sum+= coeff*sol[col]; // else accumulate sum
             }
-            inz+=1;
-            row=cooRow[inz];
+            inz+=1; // move to next entry
+            row=cooRow[inz]; // update row being processed
          }
-         aux[l] = (rhs[l]-sum)/a11;
+         aux[l] = (rhs[l]-sum)/a11; // update solution entry
       }
 
-      // compute residual
+      // compute residual, swtiching sol and aux as needed
       res = computeResidual(nnz,N
                            ,cooRow,cooCol,cooMat
-                           ,aux,rhs,sol);
+                           ,aux,rhs,sol); // note the switch between aux and sol
 
       for (int l = 0; l<N;++l) {
-         sol[l] = aux[l];
+         sol[l] = aux[l]; // update solution
       }
 
       ++iters;
-      if (iters == MAX_ITERS) break;
+      if (iters == MAX_ITERS) break; // break if max iters reached
    }
 
    if (iters < MAX_ITERS) {

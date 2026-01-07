@@ -1,1 +1,17 @@
 .DS_Store
+.vscode/
+build/
+*.o
+*.out
+*.exe
+*.log
+*.dat
+*.aux
+*.toc
+*.gz
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.blg

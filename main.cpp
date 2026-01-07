@@ -68,8 +68,6 @@ int main(int argc, char* argv[]) {
 
    const string fnmA = OUTPUT_DIR + PATH_SEP + "results_JacobiA.bin";
    FILE* fidA = fopen(fnmA.c_str(),"wb");
-   const string fnmB = OUTPUT_DIR + PATH_SEP + "results_JacobiB.bin";
-   FILE* fidB = fopen(fnmB.c_str(),"wb");
    const string fnmC = OUTPUT_DIR + PATH_SEP + "results_JacobiC.bin";
    FILE* fidC = fopen(fnmC.c_str(),"wb");
 
@@ -137,39 +135,6 @@ int main(int argc, char* argv[]) {
    fwrite(&err     , sizeof(double), 1, fidA);
    fwrite(&seconds , sizeof(double), 1, fidA);
 
-   // solver Jacobi B --------------------------------------- //
-   LOG_FILE << endl << "SOLVER JACOBI B" << endl << endl;
-
-   // reset solution
-   for (int i=0;i<N;++i) sol[i] = 0.5;
-
-   // solve
-   tp0 = chrono::steady_clock::now();
-   ierr = ierr | solveJacobi2D_B(nnz,N
-                                ,cooRow,csrRow,cooCol,cooMat
-                                ,rhs
-                                ,TOL,MAX_ITERS
-                                ,sol,res,iters
-                                ,aux
-                                ,LOG_FILE);
-   tDuration = chrono::steady_clock::now()-tp0;
-
-   err  = computeError(L,NX,NY,sol,LOG_FILE);
-
-   seconds = tDuration.count();
-
-   // print results
-   LOG_FILE << "iters : " << iters << endl;
-   LOG_FILE << "res   : " << res   << endl;
-   LOG_FILE << "err   : " << err   << endl;
-   LOG_FILE << "wall t: " << seconds << endl;
-   
-   // store results results
-   fwrite(&iters   , sizeof(int)   , 1, fidB);
-   fwrite(&res     , sizeof(double), 1, fidB);
-   fwrite(&err     , sizeof(double), 1, fidB);
-   fwrite(&seconds , sizeof(double), 1, fidB);
- 
    // solver Jacobi C --------------------------------------- //
    LOG_FILE << endl << "SOLVER JACOBI C" << endl << endl;
 
@@ -195,15 +160,9 @@ int main(int argc, char* argv[]) {
    LOG_FILE << "err   : " << err   << endl;
    LOG_FILE << "wall t: " << seconds << endl;
    
-   // store results results
-   fwrite(&iters   , sizeof(int)   , 1, fidB);
-   fwrite(&res     , sizeof(double), 1, fidB);
-   fwrite(&err     , sizeof(double), 1, fidB);
-   fwrite(&seconds , sizeof(double), 1, fidB);
    LOG_FILE.close();
 
    fclose(fidA);
-   fclose(fidB);
    fclose(fidC);
 
    delete[] cooRow;

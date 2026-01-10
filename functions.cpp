@@ -1,5 +1,6 @@
 #include "functions.h"
 #include <iostream>
+#include <cmath>
 
 using namespace std;
 
@@ -186,7 +187,81 @@ int solveJacobi2D_C(const double L
                    ,double* const aux
                    ,std::ofstream& LOG_FILE) {
 
-   return EXIT_SUCCESS;
+   // Grid spacing
+   const double DX = L / static_cast<double>(NX);
+   const double DY = L / static_cast<double>(NY);
+
+   // Stencil coefficients - same formula as generateLinSystemCOO
+   const double a01 = 1.0 / (DX * DX);   // west
+   const double a21 = 1.0 / (DX * DX);   // east
+   const double a10 = 1.0 / (DY * DY);   // south
+   const double a12 = 1.0 / (DY * DY);   // north
+   const double a11 = -2.0 * (a01 + a10); // center diagonal
+
+   const int N = (NX-1) * (NY-1);
+
+   res = 2 * TOL;
+   iters = 0;
+
+   // Main Jacobi iteration loop
+   while (res > TOL && iters < MAX_ITERS) {
+
+      // Update each grid point using neighbors
+      for (int j = 1; j <= NY-1; ++j) {
+         for (int i = 1; i <= NX-1; ++i) {
+
+            const int l = (j-1)*(NX-1) + (i-1);
+            double sum = 0.0;
+
+            // Add neighbor contributions (skip if at boundary)
+            if (j > 1)    sum += a10 * sol[l - (NX-1)];  // south
+            if (j < NY-1) sum += a12 * sol[l + (NX-1)];  // north
+            if (i > 1)    sum += a01 * sol[l - 1];       // west
+            if (i < NX-1) sum += a21 * sol[l + 1];       // east
+
+            aux[l] = (rhs[l] - sum) / a11;
+         }
+      }
+
+      // Compute residual: same formula as Jacobi A
+      res = 0.0;
+      for (int j = 1; j <= NY-1; ++j) {
+         for (int i = 1; i <= NX-1; ++i) {
+
+            const int l = (j-1)*(NX-1) + (i-1);
+            double Ax = a11 * aux[l];
+
+            if (j > 1)    Ax += a10 * aux[l - (NX-1)];
+            if (j < NY-1) Ax += a12 * aux[l + (NX-1)];
+            if (i > 1)    Ax += a01 * aux[l - 1];
+            if (i < NX-1) Ax += a21 * aux[l + 1];
+
+            double r = rhs[l] - Ax;
+            res += sqrt(r * r);  // sum of absolute values
+         }
+      }
+      res /= sqrt(static_cast<double>(N));
+
+      // Copy new solution: aux → sol
+      for (int l = 0; l < N; ++l) {
+         sol[l] = aux[l];
+      }
+
+      ++iters;
+   }
+
+   // Report outcome
+   if (res <= TOL) {
+      LOG_FILE << "Successfull convergence" << endl;
+      LOG_FILE << " - residual achieved " << res << endl;
+      LOG_FILE << " - iterations " << iters << endl;
+      return EXIT_SUCCESS;
+   } else {
+      LOG_FILE << "Failure of convergence procedure" << endl;
+      LOG_FILE << " - residual achieved " << res << endl;
+      LOG_FILE << " - iterations " << iters << endl;
+      return EXIT_FAILURE;
+   }
 }
 
 void printCOO(const int nnz

@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
    int ierr = EXIT_SUCCESS;
 
    int*    const cooRow = new    int[NNZ_MAX];
-   int*    const csrRow = new    int[NNZ_MAX]; // Only the first N+1 entries used
+   int*    const csrRow = new    int[NNZ_MAX];
    int*    const cooCol = new    int[NNZ_MAX];
    double* const cooMat = new double[NNZ_MAX];
    double* const rhs = new double[N];
@@ -96,14 +96,6 @@ int main(int argc, char* argv[]) {
                                      ,rhs
                                      ,nnz
                                      ,LOG_FILE);
-   
-   // // csrCol alias of cooCol with same addresses and no new allocation
-   // int* const csrCol = cooCol; // for clarity
-   // // csrMat alias of cooMat with same addresses and no new allocation
-   // double* const csrMat = cooMat; // for clarity
-
-   // printCOO(nnz,cooRow,cooCol,cooMat);
-   // printCSR(N,csrRow,csrCol,csrMat);
             
    int iters;
    double res;
@@ -147,13 +139,6 @@ int main(int argc, char* argv[]) {
 
 
    // solver Jacobi B --------------------------------------- //
-
-   // convert coo to csr, reusing cooCol and cooMat arrays for no new memory allocation
-   ierr = ierr | coo2csr(N
-                        ,cooRow,cooCol,cooMat
-                        ,nnz
-                        ,csrRow);
-
    LOG_FILE << endl << "SOLVER JACOBI B" << endl << endl;
 
    // reset solution
@@ -163,10 +148,14 @@ int main(int argc, char* argv[]) {
    tp0 = chrono::steady_clock::now();
    ierr = ierr | solveJacobi2D_B(nnz
                                 ,N
-                                ,csrRow,cooCol,cooMat
+                                ,cooRow
+                                ,csrRow
+                                ,cooCol
+                                ,cooMat
                                 ,rhs
                                 ,TOL,MAX_ITERS
-                                ,sol,res,iters
+                                ,sol
+                                ,res,iters
                                 ,aux
                                 ,LOG_FILE);
    tDuration = chrono::steady_clock::now()-tp0;
@@ -186,7 +175,6 @@ int main(int argc, char* argv[]) {
    fwrite(&res     , sizeof(double), 1, fidB);
    fwrite(&err     , sizeof(double), 1, fidB);
    fwrite(&seconds , sizeof(double), 1, fidB);
-
 
    // solver Jacobi C --------------------------------------- //
    LOG_FILE << endl << "SOLVER JACOBI C" << endl << endl;
@@ -208,11 +196,15 @@ int main(int argc, char* argv[]) {
    seconds = tDuration.count();
 
    // print results
-   LOG_FILE << "iters : " << iters << endl;
-   LOG_FILE << "res   : " << res   << endl;
-   LOG_FILE << "err   : " << err   << endl;
-   LOG_FILE << "wall t: " << seconds << endl;
-   
+   LOG_FILE << "iters   : " << iters << endl;
+   LOG_FILE << "res     : " << res   << endl;
+   LOG_FILE << "err     : " << err   << endl;
+   LOG_FILE << "seconds : " << seconds << endl;
+
+   fwrite(&iters   , sizeof(int)   , 1, fidC);
+   fwrite(&res     , sizeof(double), 1, fidC);
+   fwrite(&err     , sizeof(double), 1, fidC);
+   fwrite(&seconds , sizeof(double), 1, fidC);
    LOG_FILE.close();
 
    fclose(fidA);

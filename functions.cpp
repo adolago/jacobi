@@ -11,16 +11,15 @@ inline int ij2l(const int i, const int j, const int Nx) {
 #include <vector>
 #include <numeric>
 
-int coo2csr(
-    const int N,
-    int* cooRow,
-    int* cooCol,
-    double* cooMat,
-    int& nnz,
-    int* csrRow) {
+void coo2csr(const int N,
+             int* cooRow,
+             int* cooCol,
+             double* cooMat,
+             int& nnz,
+             int* csrRow) {
 
    // sort COO entries by (row, col)
-   std::vector<int> perm(nnz);
+   std::vector<int> perm(nnz); // NECCESSARY PERMUTATION!, otherwise it is not possible to convert COO to CSR with stencils that have multiple entries per row/col
    std::iota(perm.begin(), perm.end(), 0);
 
    std::sort(perm.begin(), perm.end(),
@@ -75,8 +74,6 @@ int coo2csr(
    for (int i = 0; i < N; ++i) {
       csrRow[i + 1] += csrRow[i];
    }
-
-   return EXIT_SUCCESS;
 }
 
 double computeResidualCSR(int nnz,
@@ -108,11 +105,12 @@ double computeResidualCSR(int nnz,
    return res;
    }
 
-int solveJacobi2D_B(const int nnz
+int solveJacobi2D_B(int& nnz
                    ,const int N
-                   ,const int * const csrRow
-                   ,const int * const csrCol
-                   ,const double* const csrMat
+                   ,int * const cooRow
+                   ,      int * const csrRow
+                   ,int * const cooCol
+                   ,double* const cooMat
                    ,const double* const rhs
                    ,const double TOL,const int MAX_ITERS
                    ,double* const sol
@@ -124,6 +122,14 @@ int solveJacobi2D_B(const int nnz
 
    iters = 0; // initialize iteration counter
 
+   // convert coo to csr, reusing cooCol and cooMat arrays for no new memory allocation
+   coo2csr(N
+          ,cooRow
+          ,cooCol
+          ,cooMat
+          ,nnz
+          ,csrRow);
+
    while (res > TOL && iters < MAX_ITERS) {
 
       for (int i = 0; i<N; ++i) { // loop over all states/rows
@@ -131,8 +137,8 @@ int solveJacobi2D_B(const int nnz
          double aii = 0.0; // diagonal entry
 
          for (int k = csrRow[i]; k < csrRow[i + 1]; ++k) {
-            int j = csrCol[k]; // extract current column
-            double val = csrMat[k]; // extract current value
+            int j = cooCol[k]; // extract current column
+            double val = cooMat[k]; // extract current value
 
             if (i == j){
                aii = val;
@@ -151,7 +157,7 @@ int solveJacobi2D_B(const int nnz
 
       // compute residual, swtiching sol and aux as needed
       res = computeResidualCSR(nnz,N
-                              ,csrRow,csrCol,csrMat
+                              ,csrRow,cooCol,cooMat
                               ,aux,rhs,sol); // note switch between aux and sol
       // std::cout << "Residual at iteration " << iters << " : " << res << std::endl;
       for (int l = 0; l<N; ++l) {
